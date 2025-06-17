@@ -1,42 +1,43 @@
-# src/main.py
-from modules.documents.job import start_deletion_job
-from modules.documents.services import DocumentService
-from modules.documents.models import User, UserRole, DocumentStatus
-from create_tables import crear_tablas
-from database import SessionLocal
+from fastapi import FastAPI
 import time
+import uvicorn
+from create_tables import crear_tablas
+from modules.documents.job import start_deletion_job
+from modules.documents.models import User, UserRole
+from modules.documents.services import DocumentService
+from database import SessionLocal
+from modules.notifications.controllers.notification_controller import router as notification_router
 
-def main():
+app = FastAPI(
+    title="Mi Aplicación",
+    description="API para gestión de documentos y notificaciones",
+    version="1.0.0"
+)
+
+# Incluir el router de notificaciones
+app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
+
+
+@app.on_event("startup")
+def startup_event():
     print("🚀 Iniciando aplicación...")
-
+    # Crear tablas
     crear_tablas()
     print("✅ Tablas creadas exitosamente")
-
-    # Iniciar el job de auto-eliminación
+    # Iniciar job de auto-eliminación
     start_deletion_job()
     print("✅ Job de auto-eliminación iniciado")
-
-    # Crear algunos datos de prueba
+    # Poblar datos de prueba
     crear_datos_prueba()
 
-    # Mantener la aplicación corriendo
-    try:
-        print("📊 Aplicación corriendo... (Ctrl+C para detener)")
-        while True:
-            time.sleep(60)  # Esperar 1 minuto
-            print("⏰ Aplicación activa...")
-    except KeyboardInterrupt:
-        print("\n🛑 Deteniendo aplicación...")
 
 def crear_datos_prueba():
     """Crea usuarios y documentos de prueba"""
     with SessionLocal() as session:
-        # Verificar si ya existen usuarios
         if session.query(User).count() > 0:
             print("✅ Datos de prueba ya existen")
             return
 
-        # Crear usuarios
         empleado = User(
             name="Juan Pérez",
             email="juan@empresa.com",
@@ -56,7 +57,6 @@ def crear_datos_prueba():
         session.add_all([empleado, supervisor, admin])
         session.commit()
 
-        # Crear documento de prueba
         documento = DocumentService.sign_document(
             session,
             empleado.id,
@@ -64,9 +64,15 @@ def crear_datos_prueba():
             "/uploads/contrato_prueba.pdf"
         )
 
-        print(f"✅ Datos de prueba creados:")
-        print(f"   - Usuarios: {empleado.nombre}, {supervisor.nombre}, {admin.nombre}")
-        print(f"   - Documento: {documento.nombre} (Estado: {documento.estado.value})")
+        print("✅ Datos de prueba creados:")
+        print(f"   - Usuarios: {empleado.name}, {supervisor.name}, {admin.name}")
+        print(f"   - Documento: {documento.name} (Estado: {documento.status.value})")
 
+
+@app.on_event("shutdown")
+def shutdown_event():
+    print("🛑 Aplicación detenida")
+    
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)

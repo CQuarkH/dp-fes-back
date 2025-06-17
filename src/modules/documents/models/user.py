@@ -18,3 +18,11 @@ class User(Base):
     
     # Relationship with documents
     documents = relationship("Document", back_populates="user")
+    
+    # Relationship with notifications
+    notifications = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+

@@ -1,0 +1,4 @@
+sqlalchemy
+fastapi
+psycopg2-binary>=2.9
+apscheduler>=3.10
