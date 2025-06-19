@@ -22,3 +22,6 @@ class Document(Base):
 
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     user = relationship("User", back_populates="documents")
+
+    # Relación con firmas
+    signatures = relationship("Signature",back_populates = "document",order_by = "Signature.order",cascade = "all, delete-orphan")

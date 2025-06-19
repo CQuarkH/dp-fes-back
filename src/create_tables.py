@@ -3,6 +3,7 @@ from database import engine, Base
 # Importa todos los modelos para que se registren con Base
 from modules.documents.models.user import User
 from modules.documents.models.document import Document
+from modules.documents.models.signature import Signature
 
 def crear_tablas():
     """Crea todas las tablas en la base de datos"""
