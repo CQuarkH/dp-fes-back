@@ -6,6 +6,8 @@ from database import Base
 class UserRole(PyEnum):
     EMPLOYEE = "EMPLOYEE"
     SUPERVISOR = "SUPERVISOR"
+    SIGNER = "SIGNER"
+    INSTITUTIONAL_MANAGER = "INSTITUTIONAL_MANAGER"
     ADMIN = "ADMIN"
 
 class User(Base):
@@ -15,6 +17,6 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
-    
+
     # Relationship with documents
     documents = relationship("Document", back_populates="user")
