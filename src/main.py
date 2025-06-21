@@ -11,6 +11,7 @@ from modules.documents.models import User, UserRole
 from modules.documents.services import DocumentService
 from modules.notifications.controllers.notification_controller import router as notification_router
 from modules.documents.controllers.document_controller     import router as document_router
+from modules.documents.controllers.signature_controller import router as signature_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,6 +64,7 @@ app = FastAPI(
 # Routers
 app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
 app.include_router(document_router,     prefix="/documents",    tags=["documents"])
+app.include_router(signature_router, prefix="/documents", tags=["documents"])
 
 if __name__ == "__main__":
     uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
