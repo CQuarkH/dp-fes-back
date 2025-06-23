@@ -35,7 +35,8 @@ async def upload_document(
 
     # 2) Leer contenido y validar tamaño
     contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
+    file_size = len(contents)
+    if file_size > MAX_FILE_SIZE:
         raise HTTPException(400, "El tamaño máximo es 10 MB")
 
     # 3) Verificar integridad del PDF
@@ -52,6 +53,6 @@ async def upload_document(
         f.write(contents)
 
     # 5) Persistir metadatos usando tu service
-    doc = DocumentService.upload_document(db, user_id, file.filename, file_path)
+    doc = DocumentService.upload_document(db, user_id, file.filename, file_path, file_size)
 
     return {"message": "Documento subido correctamente", "document_id": doc.id}
