@@ -1,0 +1,12 @@
+sqlalchemy
+fastapi
+psycopg2-binary>=2.9
+apscheduler>=3.10
+PyPDF2>=3.0
+python-multipart
+uvicorn[standard]
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pydantic[email]
+

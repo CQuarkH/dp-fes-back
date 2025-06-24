@@ -1,72 +1,90 @@
-# src/main.py
-from modules.documents.job import start_deletion_job
-from modules.documents.services import DocumentService
-from modules.documents.models import User, UserRole, DocumentStatus
+import os
+import uvicorn
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
 from create_tables import crear_tablas
 from database import SessionLocal
-import time
 
-def main():
+from modules.documents.job import start_deletion_job
+from modules.documents.models import User, UserRole
+from modules.documents.services import DocumentService
+from modules.auth.services.auth_service import AuthService
+from modules.notifications.controllers.notification_controller import router as notification_router
+from modules.documents.controllers.document_controller     import router as document_router
+from modules.documents.controllers.signature_controller import router as signature_router
+from modules.auth.controllers.auth_controller import router as auth_router
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup logic ---
     print("🚀 Iniciando aplicación...")
-
     crear_tablas()
     print("✅ Tablas creadas exitosamente")
-
-    # Iniciar el job de auto-eliminación
     start_deletion_job()
     print("✅ Job de auto-eliminación iniciado")
+    _crear_datos_prueba()
+    yield
+    # --- Shutdown logic ---
+    print("🛑 Aplicación detenida")
 
-    # Crear algunos datos de prueba
-    crear_datos_prueba()
-
-    # Mantener la aplicación corriendo
-    try:
-        print("📊 Aplicación corriendo... (Ctrl+C para detener)")
-        while True:
-            time.sleep(60)  # Esperar 1 minuto
-            print("⏰ Aplicación activa...")
-    except KeyboardInterrupt:
-        print("\n🛑 Deteniendo aplicación...")
-
-def crear_datos_prueba():
-    """Crea usuarios y documentos de prueba"""
+def _crear_datos_prueba():
+    """Crea usuarios con contraseñas."""
     with SessionLocal() as session:
-        # Verificar si ya existen usuarios
         if session.query(User).count() > 0:
             print("✅ Datos de prueba ya existen")
             return
 
-        # Crear usuarios
+        gestor = User(
+            name="Gestor Institucional",
+            email="gestor@empresa.com",
+            password_hash=AuthService.get_password_hash("gestor123"),
+            role=UserRole.INSTITUTIONAL_MANAGER,
+            is_active=True
+        )
+
         empleado = User(
             name="Juan Pérez",
             email="juan@empresa.com",
-            role=UserRole.EMPLOYEE
+            password_hash=AuthService.get_password_hash("juan123"),
+            role=UserRole.EMPLOYEE,
+            is_active=True
         )
         supervisor = User(
             name="Ana García",
             email="ana@empresa.com",
-            role=UserRole.SUPERVISOR
+            password_hash=AuthService.get_password_hash("ana123"),
+            role=UserRole.SUPERVISOR,
+            is_active=True
         )
         admin = User(
             name="Carlos López",
             email="carlos@empresa.com",
-            role=UserRole.ADMIN
+            password_hash=AuthService.get_password_hash("carlos123"),
+            role=UserRole.ADMIN,
+            is_active=True
         )
-
-        session.add_all([empleado, supervisor, admin])
+        session.add_all([gestor, empleado, supervisor, admin])
         session.commit()
 
-        # Crear documento de prueba
-        documento = DocumentService.sign_document(
-            session,
-            empleado.id,
-            "Contrato_Prueba.pdf",
-            "/uploads/contrato_prueba.pdf"
-        )
+        print("✅ Datos de prueba creados:")
+        print(f"   - Gestor: {gestor.email} / gestor123")
+        print(f"   - Empleado: {empleado.email} / juan123")
+        print(f"   - Supervisor: {supervisor.email} / ana123")
+        print(f"   - Admin: {admin.email} / carlos123")
 
-        print(f"✅ Datos de prueba creados:")
-        print(f"   - Usuarios: {empleado.nombre}, {supervisor.nombre}, {admin.nombre}")
-        print(f"   - Documento: {documento.nombre} (Estado: {documento.estado.value})")
+app = FastAPI(
+    title="Sistema de Gestión de Documentos",
+    description="API para gestión de documentos con firma digital",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Routers
+app.include_router(auth_router)
+app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
+app.include_router(document_router,     prefix="/documents",    tags=["documents"])
+app.include_router(signature_router, prefix="/documents", tags=["documents"])
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
