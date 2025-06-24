@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 DB_USER = "postgres"
 DB_PASSWORD = "root"
-DB_HOST = "localhost"
+DB_HOST = "db"
 DB_PORT = "5432"
 DB_NAME = "dp-db"
 
