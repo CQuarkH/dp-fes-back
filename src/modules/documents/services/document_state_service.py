@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from modules.documents.models.document import Document, DocumentStatus
 from modules.documents.models.user import User, UserRole
 from typing import Optional
+from modules.notifications.repositories.notification_repository import NotificationRepository
+from modules.notifications.services.notification_service import NotificationService
 
 class DocumentStateError(Exception):
     """Exception for document state transition errors"""
@@ -61,6 +63,14 @@ class DocumentStateService:
             document.signing_date = datetime.utcnow()
 
         session.commit()
+
+        notif_repo = NotificationRepository(session)
+        notif_service = NotificationService(notif_repo)
+        notif_service.create_change_document_state_notification(
+            user_id=document.user_id,
+            document_name=document.name,
+            new_state=new_state.value
+        )
 
         print(f"Document {document.id} changed from {previous_state.value} to {new_state.value}")
         return document
