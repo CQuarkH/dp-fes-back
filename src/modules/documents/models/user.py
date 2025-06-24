@@ -18,5 +18,8 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
 
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
     # Relationship with documents
     documents = relationship("Document", back_populates="user")
