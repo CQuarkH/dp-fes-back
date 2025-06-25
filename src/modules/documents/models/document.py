@@ -15,6 +15,7 @@ class Document(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=False)
     status = Column(Enum(DocumentStatus), nullable=False, default=DocumentStatus.IN_REVIEW)
     upload_date = Column(DateTime, default=datetime.utcnow)
     rejection_date = Column(DateTime, nullable=True)
