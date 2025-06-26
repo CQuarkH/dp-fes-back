@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from modules.documents.models.user import UserRole
 
 class LoginRequest(BaseModel):
@@ -19,12 +19,24 @@ class UserCreate(BaseModel):
     password: str
     role: UserRole
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
 class UserResponse(BaseModel):
     id: int
     name: str
     email: str
     role: UserRole
     is_active: bool
+    created_at: str
 
     class Config:
         from_attributes = True
+
+class UserListResponse(BaseModel):
+    users: List[UserResponse]
+    total: int
