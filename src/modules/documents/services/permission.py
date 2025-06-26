@@ -1,5 +1,4 @@
 from modules.documents.models.user import UserRole
-from modules.documents.models.document import DocumentStatus
 
 ROLE_PERMISSIONS = {
     UserRole.EMPLOYEE: ["upload"],
@@ -11,4 +10,3 @@ ROLE_PERMISSIONS = {
 
 def can_perform_action(user_role: UserRole, action: str) -> bool:
     return action in ROLE_PERMISSIONS.get(user_role, [])
-

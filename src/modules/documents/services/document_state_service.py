@@ -17,18 +17,18 @@ class DocumentStateService:
         """
         Defines transition rules based on user role
         """
-        current_state = document.state
+        current_state = document.status
         user_role = user.role
 
         if user_role == UserRole.EMPLOYEE:
             return False
 
         elif user_role == UserRole.SUPERVISOR:
-            if current_state == DocumentStatus.UNDER_REVIEW:
+            if current_state == DocumentStatus.IN_REVIEW:
                 return new_state in [DocumentStatus.SIGNED, DocumentStatus.REJECTED]
             return False
 
-        elif user_role == UserRole.ADMINISTRATOR:
+        elif user_role == UserRole.ADMIN:
             return True
 
         return False
@@ -54,8 +54,8 @@ class DocumentStateService:
                 f"from {document.state.value} to {new_state.value}"
             )
 
-        previous_state = document.state
-        document.state = new_state
+        previous_state = document.status
+        document.status = new_state
 
         if new_state == DocumentStatus.REJECTED:
             document.rejection_date = datetime.utcnow()
