@@ -1,15 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import SessionLocal
+from modules.auth.controllers.auth_controller import get_current_user
+from modules.auth.schemas.auth_schemas import UserResponse  # Ajusta el import según tu esquema
 from modules.documents.services.document_service import DocumentService
 import os
 import io
 from PyPDF2 import PdfReader
 
-router = APIRouter(
-    prefix="/documents",
-    tags=["documents"]
-)
+router = APIRouter(tags=["documents"])
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 UPLOAD_DIR = "uploads"
@@ -23,9 +22,9 @@ def get_db():
 
 @router.post("/upload")
 async def upload_document(
-    user_id: int,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
 ):
     # 1) Validación de MIME y extensión
     if file.content_type != "application/pdf":
@@ -35,8 +34,7 @@ async def upload_document(
 
     # 2) Leer contenido y validar tamaño
     contents = await file.read()
-    file_size = len(contents)
-    if file_size > MAX_FILE_SIZE:
+    if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(400, "El tamaño máximo es 10 MB")
 
     # 3) Verificar integridad del PDF
@@ -52,7 +50,13 @@ async def upload_document(
     with open(file_path, "wb") as f:
         f.write(contents)
 
-    # 5) Persistir metadatos usando tu service
-    doc = DocumentService.upload_document(db, user_id, file.filename, file_path, file_size)
+    # 5) Persistir metadatos pasando current_user.id
+    doc = DocumentService.upload_document(
+        session= db,
+        user_id= current_user.id,
+        name= file.filename,
+        file_path= file_path,
+        file_size= file.size
+    )
 
     return {"message": "Documento subido correctamente", "document_id": doc.id}

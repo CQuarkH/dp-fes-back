@@ -11,7 +11,7 @@ from modules.documents.models import User, UserRole
 from modules.documents.services import DocumentService
 from modules.auth.services.auth_service import AuthService
 from modules.notifications.controllers.notification_controller import router as notification_router
-from modules.documents.controllers.document_controller     import router as document_router
+from modules.documents.controllers.document_controller import router as document_router
 from modules.documents.controllers.signature_controller import router as signature_router
 from modules.auth.controllers.auth_controller import router as auth_router
 
@@ -83,7 +83,7 @@ app = FastAPI(
 # Routers
 app.include_router(auth_router)
 app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
-app.include_router(document_router,     prefix="/documents",    tags=["documents"])
+app.include_router(document_router, prefix="/documents", tags=["documents"])
 app.include_router(signature_router, prefix="/documents", tags=["documents"])
 
 if __name__ == "__main__":
