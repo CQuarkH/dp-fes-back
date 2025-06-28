@@ -40,6 +40,10 @@ class DocumentService:
             sha256_hash=sha256
         )
         session.add(sig)
+       
+        DocumentStateService.change_document_state(
+                session, document_id, user_id, DocumentStatus.SIGNED
+            )
         session.commit()
         return sig
 

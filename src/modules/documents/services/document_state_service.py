@@ -51,7 +51,7 @@ class DocumentStateService:
         if not DocumentStateService.can_change_state(user, document, new_state):
             raise DocumentStateError(
                 f"User with role {user.role.value} cannot change document "
-                f"from {document.state.value} to {new_state.value}"
+                f"from {document.status.value} to {new_state.value}"
             )
 
         previous_state = document.status
