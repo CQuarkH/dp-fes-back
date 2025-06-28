@@ -1,6 +1,6 @@
 import hashlib
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from modules.documents.models.document import Document, DocumentStatus
 from modules.documents.models.signature import Signature
 from modules.documents.models.user import User
@@ -8,6 +8,22 @@ from modules.documents.services.document_state_service import DocumentStateServi
 from datetime import datetime
 
 class DocumentService:
+    
+    @staticmethod
+    def get_documents_by_user(session: Session, user_id: int) -> list[Document]:
+        """
+        Obtiene todos los documentos de un usuario
+        """
+        documents = (
+            session
+            .query(Document)
+            .options(
+             joinedload(Document.signatures)        # traer firmas
+                .joinedload(Signature.user))
+            .filter(Document.user_id == user_id)
+            .all()
+        )
+        return documents
 
     @staticmethod
     def add_signature(session: Session, document_id: int, user_id: int) -> Signature:
@@ -79,6 +95,6 @@ class DocumentService:
         """
         Reject a document (change to REJECTED)
         """
-        return DocumentStateService.change_document_status(
+        return DocumentStateService.change_document_state(
             session, document_id, user_id, DocumentStatus.REJECTED
         )
