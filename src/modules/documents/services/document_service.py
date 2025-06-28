@@ -1,5 +1,10 @@
 import hashlib
+import io
+import os
 
+from PyPDF2 import PdfReader
+from fastapi import HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from modules.documents.models.document import Document, DocumentStatus
 from modules.documents.models.signature import Signature
@@ -64,22 +69,127 @@ class DocumentService:
         return sig
 
     @staticmethod
-    def upload_document(session: Session, user_id: int, name: str, file_path: str, file_size: int) -> Document:
+    def upload_document(
+        session: Session, 
+        user_id: int, 
+        file_contents: bytes, 
+        filename: str, 
+        content_type: str,
+        upload_dir: str,
+        max_file_size: int = 10 * 1024 * 1024  # 10 MB por defecto
+    ) -> Document:
         """
-        Upload a new document (always starts as IN_REVIEW)
+        Procesa y guarda un documento completo:
+        - Valida el archivo
+        - Determina nombre único
+        - Guarda archivo físico
+        - Crea registro en BD
         """
+        
+        # 1) Validaciones
+        DocumentService._validate_file(file_contents, filename, content_type, max_file_size)
+        
+        # 2) Determinar nombre único
+        unique_name = DocumentService._get_unique_filename(session, user_id, filename)
+        
+        # 3) Crear directorio si no existe
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 4) Guardar archivo físico
+        file_path = os.path.join(upload_dir, unique_name)
+        with open(file_path, "wb") as f:
+            f.write(file_contents)
+        
+        # 5) Crear registro en BD
         document = Document(
-            name=name,
+            name=unique_name,
             file_path=file_path,
-            file_size=file_size,
+            file_size=len(file_contents),
             status=DocumentStatus.IN_REVIEW,
             user_id=user_id,
             upload_date=datetime.utcnow()
         )
-
         session.add(document)
         session.commit()
+        
         return document
+    
+    @staticmethod
+    def _validate_file(file_contents: bytes, filename: str, content_type: str, max_file_size: int):
+        """Valida el archivo subido"""
+        
+        # Validar MIME type
+        if content_type != "application/pdf":
+            raise HTTPException(400, "El archivo debe ser un PDF")
+        
+        # Validar extensión
+        if not filename.lower().endswith(".pdf"):
+            raise HTTPException(400, "La extensión debe ser .pdf")
+        
+        # Validar tamaño
+        if len(file_contents) > max_file_size:
+            raise HTTPException(400, f"El tamaño máximo es {max_file_size // (1024*1024)} MB")
+        
+        # Validar integridad del PDF
+        try:
+            reader = PdfReader(io.BytesIO(file_contents))
+            _ = reader.pages
+        except Exception:
+            raise HTTPException(400, "PDF inválido o dañado")
+    
+    @staticmethod
+    def _get_unique_filename(session: Session, user_id: int, original_name: str) -> str:
+        """Determina el nombre único que se usará para el archivo"""
+        
+        # Separar nombre y extensión
+        base, ext = os.path.splitext(original_name)
+        
+        # Consultar documentos existentes del usuario con el mismo nombre base
+        existing_names = (
+            session.query(Document.name)
+            .filter(
+                Document.user_id == user_id,
+                or_(
+                    Document.name == original_name,  # Nombre exacto
+                    Document.name.ilike(f"{base}_%{ext}")  # Con sufijo _n
+                )
+            )
+            .all()
+        )
+        existing = [row[0] for row in existing_names]
+        
+        # Si no hay duplicados, usar el nombre original
+        if not existing:
+            return original_name
+        
+        # Extraer sufijos _n ya usados
+        used_numbers = set()
+        
+        for existing_name in existing:
+            if existing_name == original_name:
+                # El nombre original sin sufijo existe
+                used_numbers.add(0)  # Consideramos que el original es _0
+            elif existing_name.startswith(f"{base}_") and existing_name.endswith(ext):
+                # Extraer el número del sufijo
+                try:
+                    # Obtener la parte entre "base_" y "ext"
+                    start_idx = len(base) + 1  # Longitud de "base_"
+                    end_idx = len(existing_name) - len(ext) if ext else len(existing_name)
+                    
+                    if end_idx > start_idx:
+                        number_str = existing_name[start_idx:end_idx]
+                        number = int(number_str)
+                        used_numbers.add(number)
+                except (ValueError, IndexError):
+                    # Si no se puede extraer el número, ignorar
+                    continue
+        
+        # Encontrar el siguiente número disponible
+        next_num = 1
+        while next_num in used_numbers:
+            next_num += 1
+        
+        return f"{base}_{next_num}{ext}"
 
     @staticmethod
     def sign_document(session: Session, document_id: int, user_id: int) -> Document:

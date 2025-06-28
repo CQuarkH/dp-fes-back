@@ -37,37 +37,18 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user)
 ):
-    # 1) Validación de MIME y extensión
-    if file.content_type != "application/pdf":
-        raise HTTPException(400, "El archivo debe ser un PDF")
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(400, "La extensión debe ser .pdf")
-
-    # 2) Leer contenido y validar tamaño
+    # Leer el contenido del archivo
     contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(400, "El tamaño máximo es 10 MB")
-
-    # 3) Verificar integridad del PDF
-    try:
-        reader = PdfReader(io.BytesIO(contents))
-        _ = reader.pages
-    except Exception:
-        raise HTTPException(400, "PDF inválido o dañado")
-
-    # 4) Guardar en disco
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(file_path, "wb") as f:
-        f.write(contents)
-
-    # 5) Persistir metadatos pasando current_user.id
+    
+    # El servicio maneja toda la lógica
     doc = DocumentService.upload_document(
-        session= db,
-        user_id= current_user.id,
-        name= file.filename,
-        file_path= file_path,
-        file_size= file.size
+        session=db,
+        user_id=current_user.id,
+        file_contents=contents,
+        filename=file.filename,
+        content_type=file.content_type,
+        upload_dir=UPLOAD_DIR,
+        max_file_size=MAX_FILE_SIZE
     )
 
     return {"message": "Documento subido correctamente", "document_id": doc.id}
