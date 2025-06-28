@@ -1,16 +1,14 @@
-# src/modules/documents/controllers/signature_controller.py
 import hashlib
 
 from fastapi import APIRouter, HTTPException, Depends, Response
 from sqlalchemy.orm import Session
 from database import SessionLocal
+from modules.auth.controllers.auth_controller import get_current_user
+from modules.auth.schemas.auth_schemas import UserResponse  # Ajusta el import según tu esquema
 from modules.documents.models import Document
 from modules.documents.services.document_service import DocumentService
 
-router = APIRouter(
-    prefix="/documents",
-    tags=["documents"]
-)
+router = APIRouter(tags=["documents"])
 
 def get_db():
     db = SessionLocal()
@@ -22,14 +20,14 @@ def get_db():
 @router.post("/{document_id}/sign")
 def sign_document(
     document_id: int,
-    user_id:     int,
-    db:          Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """
     Añade una firma: hasta 5 por documento, guarda sha256.
     """
     try:
-        sig = DocumentService.add_signature(db, document_id, user_id)
+        sig = DocumentService.add_signature(db, document_id, current_user.id)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return {
@@ -41,7 +39,11 @@ def sign_document(
     }
 
 @router.get("/{document_id}/download")
-def download_and_validate(document_id: int, db: Session = Depends(get_db)):
+def download_and_validate(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
     """
     Devuelve el PDF si el hash coincide; si no, marca como inválido.
     """
@@ -65,3 +67,4 @@ def download_and_validate(document_id: int, db: Session = Depends(get_db)):
 
     # 3) Devolver PDF
     return Response(content=data, media_type="application/pdf")
+
