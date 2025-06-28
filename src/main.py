@@ -1,6 +1,7 @@
 import os
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from create_tables import crear_tablas
@@ -80,6 +81,32 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Configuración de CORS mejorada - Asegurando que esté guardada
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "*"  # Para desarrollo - remover en producción
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers"
+    ],
+    expose_headers=["*"],
+    max_age=86400,
+)
 # Routers
 app.include_router(auth_router)
 app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
