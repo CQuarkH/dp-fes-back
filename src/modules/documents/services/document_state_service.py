@@ -19,6 +19,12 @@ class DocumentStateService:
         """
         current_state = document.status
         user_role = user.role
+        
+        # permitir al usuario firmante firmar su documento
+        if user_role == UserRole.SIGNER:
+            if current_state in (DocumentStatus.IN_REVIEW, DocumentStatus.SIGNED):
+                return new_state == DocumentStatus.SIGNED
+            return False
 
         if user_role == UserRole.EMPLOYEE:
             return False
