@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
+from datetime import datetime
 from modules.documents.models.user import UserRole
 
 class LoginRequest(BaseModel):
@@ -32,10 +33,13 @@ class UserResponse(BaseModel):
     email: str
     role: UserRole
     is_active: bool
-    created_at: str
+    created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat()
+        }
 
 class UserListResponse(BaseModel):
     users: List[UserResponse]
