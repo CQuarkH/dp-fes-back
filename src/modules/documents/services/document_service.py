@@ -18,15 +18,17 @@ class DocumentService:
     @staticmethod
     def get_documents_by_user(session: Session, user_id: int) -> list[Document]:
         """
-        Obtiene todos los documentos de un usuario
+        Obtiene todos los documentos de un usuario (o todos si es supervisor/manager),
+        e incluye el objeto User que los subió.
         """
         user = session.get(User, user_id)
-        
+
+        base_q = session.query(Document).options(joinedload(Document.user))
+
         if user.role in [UserRole.SUPERVISOR, UserRole.INSTITUTIONAL_MANAGER]:
-            return session.query(Document).all()
-        
+            return base_q.all()
         else:
-            return session.query(Document).filter(Document.user_id == user_id).all()
+            return base_q.filter(Document.user_id == user_id).all()
 
 
     @staticmethod
