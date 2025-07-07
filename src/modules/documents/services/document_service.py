@@ -11,24 +11,23 @@ from modules.documents.models.signature import Signature
 from modules.documents.models.user import User
 from modules.documents.services.document_state_service import DocumentStateService
 from datetime import datetime
+from modules.documents.models.user import UserRole
 
 class DocumentService:
-    
+
     @staticmethod
     def get_documents_by_user(session: Session, user_id: int) -> list[Document]:
         """
         Obtiene todos los documentos de un usuario
         """
-        documents = (
-            session
-            .query(Document)
-            .options(
-             joinedload(Document.signatures)        # traer firmas
-                .joinedload(Signature.user))
-            .filter(Document.user_id == user_id)
-            .all()
-        )
-        return documents
+        user = session.get(User, user_id)
+        
+        if user.role in [UserRole.SUPERVISOR, UserRole.INSTITUTIONAL_MANAGER]:
+            return session.query(Document).all()
+        
+        else:
+            return session.query(Document).filter(Document.user_id == user_id).all()
+
 
     @staticmethod
     def add_signature(session: Session, document_id: int, user_id: int) -> Signature:
