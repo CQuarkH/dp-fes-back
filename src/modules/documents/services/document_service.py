@@ -19,11 +19,24 @@ class DocumentService:
     def get_documents_by_user(session: Session, user_id: int) -> list[Document]:
         """
         Obtiene todos los documentos de un usuario (o todos si es supervisor/manager),
-        e incluye el objeto User que los subió.
+        e incluye:
+         - el objeto User que subió el documento
+         - la lista de Signature
+         - dentro de cada Signature, el objeto User que la firmó
         """
         user = session.get(User, user_id)
 
-        base_q = session.query(Document).options(joinedload(Document.user))
+        base_q = (
+            session
+            .query(Document)
+            .options(
+                # Eager-load del usuario que subió el documento
+                joinedload(Document.user),
+                # Eager-load de la lista de firmas, y de cada firma su user
+                joinedload(Document.signatures)
+                    .joinedload(Signature.user)
+            )
+        )
 
         if user.role in [UserRole.SUPERVISOR, UserRole.INSTITUTIONAL_MANAGER]:
             return base_q.all()
