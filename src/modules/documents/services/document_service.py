@@ -44,13 +44,14 @@ class DocumentService:
         return sig
 
     @staticmethod
-    def upload_document(session: Session, user_id: int, name: str, file_path: str) -> Document:
+    def upload_document(session: Session, user_id: int, name: str, file_path: str, file_size: int) -> Document:
         """
         Upload a new document (always starts as IN_REVIEW)
         """
         document = Document(
             name=name,
             file_path=file_path,
+            file_size=file_size,
             status=DocumentStatus.IN_REVIEW,
             user_id=user_id,
             upload_date=datetime.utcnow()

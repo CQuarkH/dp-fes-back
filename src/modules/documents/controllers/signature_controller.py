@@ -8,7 +8,6 @@ from modules.documents.models import Document
 from modules.documents.services.document_service import DocumentService
 
 router = APIRouter(
-    prefix="/documents",
     tags=["documents"]
 )
 

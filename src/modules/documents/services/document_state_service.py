@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from modules.documents.models.document import Document, DocumentStatus
 from modules.documents.models.user import User, UserRole
 from typing import Optional
+from modules.notifications.repositories.notification_repository import NotificationRepository
+from modules.notifications.services.notification_service import NotificationService
 
 class DocumentStateError(Exception):
     """Exception for document state transition errors"""
@@ -15,18 +17,18 @@ class DocumentStateService:
         """
         Defines transition rules based on user role
         """
-        current_state = document.state
+        current_state = document.status
         user_role = user.role
 
         if user_role == UserRole.EMPLOYEE:
             return False
 
         elif user_role == UserRole.SUPERVISOR:
-            if current_state == DocumentStatus.UNDER_REVIEW:
+            if current_state == DocumentStatus.IN_REVIEW:
                 return new_state in [DocumentStatus.SIGNED, DocumentStatus.REJECTED]
             return False
 
-        elif user_role == UserRole.ADMINISTRATOR:
+        elif user_role == UserRole.ADMIN:
             return True
 
         return False
@@ -52,8 +54,8 @@ class DocumentStateService:
                 f"from {document.state.value} to {new_state.value}"
             )
 
-        previous_state = document.state
-        document.state = new_state
+        previous_state = document.status
+        document.status = new_state
 
         if new_state == DocumentStatus.REJECTED:
             document.rejection_date = datetime.utcnow()
@@ -61,6 +63,14 @@ class DocumentStateService:
             document.signing_date = datetime.utcnow()
 
         session.commit()
+
+        notif_repo = NotificationRepository(session)
+        notif_service = NotificationService(notif_repo)
+        notif_service.create_change_document_state_notification(
+            user_id=document.user_id,
+            document_name=document.name,
+            new_state=new_state.value
+        )
 
         print(f"Document {document.id} changed from {previous_state.value} to {new_state.value}")
         return document
