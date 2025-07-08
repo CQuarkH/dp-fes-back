@@ -21,7 +21,12 @@ Una vez que se tiene el repositorio clonado y dentro de la raíz del proyecto, s
 pip install -r requirements.txt
 ```
 
-Luego, las pruebas se ejecutan con el siguiente comando: 
+Luego, se debe levantar el contenedor Docker con el siguiente comando: 
+```
+docker-compose up --build
+```
+
+Finalmente, con el contenedor Docker corriendo, las pruebas se ejecutan con el siguiente comando: 
 ```
 pytest
 ```
